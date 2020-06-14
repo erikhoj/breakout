@@ -37,6 +37,8 @@ public class BlockSpawner : MonoBehaviour {
 				var instance = Instantiate(_blockPrefab, transform);
 
 				instance.transform.localPosition = pos;
+				
+				instance.SetHits(blocks[x, y].hits);
 			}
 		}
 	}
