@@ -5,7 +5,12 @@ using Random = UnityEngine.Random;
 public class Ball : MonoBehaviour {
     [SerializeField] private GameObject _hitEffect;
 
-    [SerializeField] private float _speed;
+    [SerializeField] private float _minSpeed;
+    [SerializeField] private float _speedIncrement;
+    [SerializeField] private float _maxSpeed;
+    
+    private float _speed;
+    
     [SerializeField] private float _radius;
     
     private Vector3 _direction;
@@ -17,6 +22,8 @@ public class Ball : MonoBehaviour {
         _direction = _direction.normalized;
 
         _startScale = transform.localScale;
+
+        _speed = _minSpeed;
     }
 
     private void Update()
@@ -28,23 +35,29 @@ public class Ball : MonoBehaviour {
         var hit = Physics2D.CircleCast(previousPos, _radius, _direction, movement, LayerMask.GetMask("Default"));
 
         if (hit.collider != null) {
-            _direction = Vector2.Reflect(_direction, hit.normal);
+            var hittable = hit.collider.GetComponentInParent<IHittable>();
 
+            if (hittable != null) {
+                hittable.OnHit(hit, _direction);
+            }
+            
             var paddle = hit.collider.GetComponent<Paddle>();
             if (paddle != null) {
                 RedirectByPaddle(hit.point, paddle);
+            }
+            else {
+                _direction = Vector2.Reflect(_direction, hit.normal);
+            }
+
+            var block = hit.collider.GetComponent<Block>();
+            if (block) {
+                _speed = Mathf.Min(_speed + _speedIncrement, _maxSpeed);
             }
 
             var distToWall = hit.distance - _radius;
             var movementLeft = movement - distToWall;
 
             transform.position = previousPos + _direction * (hit.distance - _radius) + _direction * movementLeft;
-
-            var hittable = hit.collider.GetComponentInParent<IHittable>();
-
-            if (hittable != null) {
-                hittable.OnHit(hit);
-            }
 
             SpawnHitEffect(hit.point);
         } else {
@@ -63,6 +76,8 @@ public class Ball : MonoBehaviour {
 
     private void RedirectByPaddle(Vector2 hitPoint, Paddle paddle) {
         var xOffset = paddle.transform.position.x - hitPoint.x;
+
+        _direction = Vector2.Reflect(_direction, Vector2.up);
 
         _direction.x -= xOffset;
         _direction = _direction.normalized;

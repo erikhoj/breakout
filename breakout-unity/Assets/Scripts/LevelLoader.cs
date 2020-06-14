@@ -37,9 +37,15 @@ public class LevelLoader {
 		for (var y = 0; y < lines.Length; y++) {
 			var blocks = lines[y].Split(',');
 			
-			for (var x = 0; x < lines.Length; x++) {
+			for (var x = 0; x < blocks.Length; x++) {
 				var blockChar = blocks[x];
+				
+				Debug.Log(blockChar);
 
+				if (blockChar == "") {
+					continue;
+				}
+				
 				if (int.TryParse(blockChar, out var hits)) {
 					info.blocks[x, y] = new BlockInfo() {
 						hits = hits,

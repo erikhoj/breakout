@@ -998,7 +998,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _hitEffect: {fileID: 1007036872133975855, guid: 29efd0753236d7e4c995e2d60838a47b,
     type: 3}
-  _speed: 5
+  _minSpeed: 5
+  _speedIncrement: 0.1
+  _maxSpeed: 10
   _radius: 0.1
 --- !u!1001 &1561887289206267610
 PrefabInstance:
