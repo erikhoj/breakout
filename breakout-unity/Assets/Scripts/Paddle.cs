@@ -15,5 +15,8 @@ public class Paddle : MonoBehaviour {
 		}
 
 		transform.position += (Vector3) velocity * Time.deltaTime;
+
+		var posX = Mathf.Clamp(transform.position.x, -5.2f, 5.2f);
+		transform.position = new Vector3(posX, transform.position.y, transform.position.z);
 	}
 }

@@ -167,6 +167,10 @@ MonoBehaviour:
   - {r: 0.3422947, g: 0, b: 1, a: 1}
   _graphicsParent: {fileID: 6347293857317853800}
   _lifeParent: {fileID: 6347293857317853800}
+  _powerups:
+  - {fileID: 4381291129695474147, guid: c73162f6f3f16214481ec9f787083608, type: 3}
+  _deathParticleSystem: {fileID: 2366964435355456174, guid: b84272ee6876f4b43a9b466926cba74d,
+    type: 3}
 --- !u!61 &8279758452686104415
 BoxCollider2D:
   m_ObjectHideFlags: 0

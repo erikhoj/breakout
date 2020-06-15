@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class Block : MonoBehaviour, IHittable {
 	[SerializeField] private GameObject _lifePrefab;
@@ -11,23 +11,27 @@ public class Block : MonoBehaviour, IHittable {
 	[SerializeField] private Transform _graphicsParent;
 	
 	[SerializeField] private Transform _lifeParent;
+
+	[SerializeField] private Powerup[] _powerups;
+
+	[SerializeField] private ParticleSystem _deathParticleSystem;
 	
 	private List<GameObject> _lives = new List<GameObject>();
 	
 	private int _hits = 1;
-
+	private bool _hasPowerup = false;
+	
 	private void Awake() {
 		_lifePrefab.SetActive(false);
 	}
 	
-	public void SetHits(int hits) {
-		_hits = hits;
+	public void SetInfo(BlockInfo info) {
+		_hits = info.hits;
+		_hasPowerup = info.hasPowerup;
 		
-		var numBoxes = hits - 1f;
-
 		var spaceBetween = 0.1f;
-		var startPos = -((numBoxes - 1f) / 2f) * spaceBetween;
-		for (var i = 0; i < numBoxes; i++) {
+		var startPos = -((_hits - 1f) / 2f) * spaceBetween;
+		for (var i = 0; i < _hits; i++) {
 			var instance = Instantiate(_lifePrefab, _lifeParent);
 			instance.transform.localPosition = Vector3.left * (startPos + spaceBetween * i);
 			
@@ -50,14 +54,37 @@ public class Block : MonoBehaviour, IHittable {
 	}
 
 	private Color GetColor() {
-		return _colors[Mathf.Min(_colors.Length, _hits - 1)];
+		var index = Mathf.Clamp(_hits - 1, 0, _colors.Length - 1);
+		
+		return _colors[index];
 	}
 	
-	public void OnHit(RaycastHit2D hit, Vector2 direction) {
+	public void OnHit(RaycastHit2D hit, Ball ball) {
+		if (_hits <= 0) {
+			return;
+		}
+		
 		_hits -= 1;
 
+		RemoveLife();
+		
 		if (_hits == 0) {
-			Destroy(gameObject);
+			DropPowerup();
+			//SpawnDeathParticles(ball.direction);
+			var sequence = DOTween.Sequence();
+
+			var targetColor = Color.white;
+			targetColor.a = 0;
+			sequence.Append(_boxRenderer.DOColor(targetColor, 0.3f).SetEase(Ease.OutSine));
+			
+			var offset = hit.point.x - transform.position.x;
+			var targetAngle = 300 * offset;
+			//_graphicsParent.DOLocalRotate(new Vector3(0, 0, targetAngle), 0.8f, RotateMode.LocalAxisAdd).SetEase(Ease.OutSine);
+
+			_graphicsParent.DOScale(_graphicsParent.localScale * 1.4f, 0.3f).SetEase(Ease.OutSine);
+			//_graphicsParent.DOMove(transform.position - (Vector3) hit.normal, 0.8f).SetEase(Ease.OutSine);
+			
+			GetComponent<BoxCollider2D>().enabled = false;
 		}
 		else {
 			var sequence = DOTween.Sequence();
@@ -73,9 +100,6 @@ public class Block : MonoBehaviour, IHittable {
 			_graphicsParent.eulerAngles = new Vector3(0, 0, 0);
 			_graphicsParent.DOLocalRotate(new Vector3(0, 0, targetAngle), 0.1f).SetEase(Ease.OutSine).SetLoops(2, LoopType.Yoyo);
 			
-			var lifeToRemove = _lives.First();
-			_lives.Remove(lifeToRemove);
-
 			foreach (var life in _lives) {
 				var r = life.GetComponent<Renderer>();
 				var m = r.material;
@@ -83,21 +107,62 @@ public class Block : MonoBehaviour, IHittable {
 				m.DOColor(targetColor, "_BaseColor", 0.2f).SetDelay(0.2f);
 			}
 
-			var lifeSequence = DOTween.Sequence();
-			var lifeMaterial = lifeToRemove.GetComponent<Renderer>().material;
-			lifeSequence.Append(lifeMaterial.DOColor(Color.white, "_BaseColor", 0.2f));
-
-			var outColor = Color.white;
-			outColor.a = 0;
-			lifeSequence.Append(lifeMaterial.DOColor(outColor, "_BaseColor", 0.2f));
-			
-			var lifeRigidbody = lifeToRemove.AddComponent<Rigidbody2D>();
-			lifeRigidbody.velocity = Vector2.right * 1.5f;
-			lifeRigidbody.angularVelocity = -720;
-			
-			lifeToRemove.transform.SetParent(null);
-
-			lifeSequence.AppendCallback(() => Destroy(lifeToRemove.gameObject));
+			//SpawnHitParticles(ball.direction);
 		}
+	}
+
+	private void SpawnHitParticles(Vector3 direction) {
+		var particles = SpawnParticles(direction);
+
+		var emission = particles.emission;
+		var burst = emission.GetBurst(0);
+		burst.count = 5;
+	}
+
+	private void SpawnDeathParticles(Vector3 direction) {
+		SpawnParticles(direction);
+	}
+
+	private ParticleSystem SpawnParticles(Vector3 direction) {
+		var particles = Instantiate(_deathParticleSystem, transform.position, Quaternion.identity);
+		particles.gameObject.SetActive(true);
+		var velocity = particles.velocityOverLifetime;
+		velocity.space = ParticleSystemSimulationSpace.World;
+		
+		velocity.x = new ParticleSystem.MinMaxCurve(2 * direction.x, 4 * direction.x);
+		velocity.y = new ParticleSystem.MinMaxCurve(2 * direction.y, 4 * direction.y);
+
+		return particles;
+	}
+
+	private void RemoveLife() {
+		var lifeToRemove = _lives.First();
+		_lives.Remove(lifeToRemove);
+		
+		var lifeSequence = DOTween.Sequence();
+		var lifeMaterial = lifeToRemove.GetComponent<Renderer>().material;
+		lifeSequence.Append(lifeMaterial.DOColor(Color.white, "_BaseColor", 0.2f));
+
+		var outColor = Color.white;
+		outColor.a = 0;
+		lifeSequence.Append(lifeMaterial.DOColor(outColor, "_BaseColor", 0.2f));
+			
+		var lifeRigidbody = lifeToRemove.AddComponent<Rigidbody2D>();
+		lifeRigidbody.velocity = Vector2.right * 1.5f;
+		lifeRigidbody.angularVelocity = -720;
+			
+		lifeToRemove.transform.SetParent(null);
+
+		lifeSequence.AppendCallback(() => Destroy(lifeToRemove.gameObject));
+		
+	}
+
+	private void DropPowerup() {
+		if (!_hasPowerup) {
+			return;
+		}
+		
+		var randomPowerUp = _powerups[Random.Range(0, _powerups.Length - 1)];
+		Instantiate(randomPowerUp, transform.position, Quaternion.identity);
 	}
 }

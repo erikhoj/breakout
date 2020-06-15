@@ -45,8 +45,13 @@ public class LevelLoader {
 				if (blockChar == "") {
 					continue;
 				}
-				
-				if (int.TryParse(blockChar, out var hits)) {
+
+				if (blockChar.ToLower() == "x") {
+					info.blocks[x, y] = new BlockInfo() {
+						hits = 1,
+						hasPowerup = true,
+					};
+				} else if (int.TryParse(blockChar, out var hits)) {
 					info.blocks[x, y] = new BlockInfo() {
 						hits = hits,
 					};

@@ -57,7 +57,7 @@ public class BlockSpawner : MonoBehaviour {
 				instance.transform.localScale = Vector3.one * scale;
 
 				instance.transform.localPosition = pos;
-				instance.SetHits(blockInfo.hits);
+				instance.SetInfo(blockInfo);
 			}
 		}
 	}

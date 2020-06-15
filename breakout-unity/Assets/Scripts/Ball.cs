@@ -12,14 +12,21 @@ public class Ball : MonoBehaviour {
     private float _speed;
     
     [SerializeField] private float _radius;
-    
-    private Vector3 _direction;
+
+    public Vector3 direction;
     private Vector3 _startScale;
-    
+
+    private bool _canHitPaddle = true;
+    private int _paddleLayerMask;
+    private int _noPaddleLayerMask;
+
     private void Awake() {
-        _direction = Random.insideUnitCircle.normalized;
-        _direction.y = Mathf.Max(0.7f, Mathf.Abs(_direction.y));
-        _direction = _direction.normalized;
+        _paddleLayerMask = LayerMask.GetMask("Default", "Paddle");
+        _noPaddleLayerMask = LayerMask.GetMask("Default");
+        
+        direction = Random.insideUnitCircle.normalized;
+        direction.y = Mathf.Max(0.7f, Mathf.Abs(direction.y));
+        direction = direction.normalized;
 
         _startScale = transform.localScale;
 
@@ -32,21 +39,28 @@ public class Ball : MonoBehaviour {
 
         var movement = _speed * Time.deltaTime;
 
-        var hit = Physics2D.CircleCast(previousPos, _radius, _direction, movement, LayerMask.GetMask("Default"));
-
+        var hit = Physics2D.CircleCast(previousPos, _radius, direction, movement, _canHitPaddle ? _paddleLayerMask : _noPaddleLayerMask);
+        Debug.Log(_canHitPaddle);
+        
         if (hit.collider != null) {
-            var hittable = hit.collider.GetComponentInParent<IHittable>();
-
-            if (hittable != null) {
-                hittable.OnHit(hit, _direction);
-            }
-            
             var paddle = hit.collider.GetComponent<Paddle>();
             if (paddle != null) {
                 RedirectByPaddle(hit.point, paddle);
+                _canHitPaddle = false;
             }
             else {
-                _direction = Vector2.Reflect(_direction, hit.normal);
+                direction = Vector2.Reflect(direction, hit.normal);
+                _canHitPaddle = true;
+            }
+            
+            var hittable = hit.collider.GetComponentInParent<IHittable>();
+
+            if (hittable != null) {
+                hittable.OnHit(hit, this);
+            }
+
+            if (!gameObject) {
+                return;
             }
 
             var block = hit.collider.GetComponent<Block>();
@@ -57,14 +71,14 @@ public class Ball : MonoBehaviour {
             var distToWall = hit.distance - _radius;
             var movementLeft = movement - distToWall;
 
-            transform.position = previousPos + _direction * (hit.distance - _radius) + _direction * movementLeft;
+            transform.position = previousPos + direction * (hit.distance - _radius) + direction * movementLeft;
 
             SpawnHitEffect(hit.point);
         } else {
-            transform.position += _direction * movement;
+            transform.position += direction * movement;
         }
         
-        transform.up = _direction;
+        transform.up = direction;
 
         var elongation = _speed / 5f;
         transform.localScale = new Vector3(_startScale.x * (1 / elongation), _startScale.y * elongation, _startScale.z);
@@ -77,9 +91,9 @@ public class Ball : MonoBehaviour {
     private void RedirectByPaddle(Vector2 hitPoint, Paddle paddle) {
         var xOffset = paddle.transform.position.x - hitPoint.x;
 
-        _direction = Vector2.Reflect(_direction, Vector2.up);
+        direction = Vector2.Reflect(direction, Vector2.up);
 
-        _direction.x -= xOffset;
-        _direction = _direction.normalized;
+        direction.x -= xOffset;
+        direction = direction.normalized;
     }
 }
