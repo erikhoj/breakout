@@ -15,8 +15,6 @@ public class Block : MonoBehaviour, IHittable {
 
 	[SerializeField] private Powerup[] _powerups;
 
-	[SerializeField] private ParticleSystem _deathParticleSystem;
-	
 	private List<GameObject> _lives = new List<GameObject>();
 	
 	private int _hits = 1;
@@ -98,7 +96,6 @@ public class Block : MonoBehaviour, IHittable {
 			sequence.Append(_boxRenderer.DOColor(Color.white, 0.2f).SetEase(Ease.OutSine));
 			sequence.Append(_boxRenderer.DOColor(targetColor, 0.1f).SetEase(Ease.OutSine));
 			
-			//_graphicsParent.DOLocalMove(Vector * 0.1f, 0.1f).SetEase(Ease.OutSine).SetLoops(2, LoopType.Yoyo);
 			var offset = hit.point.x - transform.position.x;
 			var targetAngle = 30 * offset;
 			
@@ -112,32 +109,7 @@ public class Block : MonoBehaviour, IHittable {
 				m.DOColor(targetColor, "_BaseColor", 0.2f).SetDelay(0.2f);
 			}
 
-			//SpawnHitParticles(ball.direction);
 		}
-	}
-
-	private void SpawnHitParticles(Vector3 direction) {
-		var particles = SpawnParticles(direction);
-
-		var emission = particles.emission;
-		var burst = emission.GetBurst(0);
-		burst.count = 5;
-	}
-
-	private void SpawnDeathParticles(Vector3 direction) {
-		SpawnParticles(direction);
-	}
-
-	private ParticleSystem SpawnParticles(Vector3 direction) {
-		var particles = Instantiate(_deathParticleSystem, transform.position, Quaternion.identity);
-		particles.gameObject.SetActive(true);
-		var velocity = particles.velocityOverLifetime;
-		velocity.space = ParticleSystemSimulationSpace.World;
-		
-		velocity.x = new ParticleSystem.MinMaxCurve(2 * direction.x, 4 * direction.x);
-		velocity.y = new ParticleSystem.MinMaxCurve(2 * direction.y, 4 * direction.y);
-
-		return particles;
 	}
 
 	private void RemoveLife() {
