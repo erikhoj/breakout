@@ -16,7 +16,7 @@ public class Ball : MonoBehaviour {
     public Vector3 direction;
     private Vector3 _startScale;
 
-    private bool _canHitPaddle = true;
+    public bool canHitPaddle = true;
     private int _paddleLayerMask;
     private int _noPaddleLayerMask;
 
@@ -24,8 +24,7 @@ public class Ball : MonoBehaviour {
         _paddleLayerMask = LayerMask.GetMask("Default", "Paddle");
         _noPaddleLayerMask = LayerMask.GetMask("Default");
         
-        direction = Random.insideUnitCircle.normalized;
-        direction.y = Mathf.Max(0.7f, Mathf.Abs(direction.y));
+        direction = new Vector3(Random.Range(0.2f, 0.4f), 1f, 0);
         direction = direction.normalized;
 
         _startScale = transform.localScale;
@@ -39,18 +38,17 @@ public class Ball : MonoBehaviour {
 
         var movement = _speed * Time.deltaTime;
 
-        var hit = Physics2D.CircleCast(previousPos, _radius, direction, movement, _canHitPaddle ? _paddleLayerMask : _noPaddleLayerMask);
-        Debug.Log(_canHitPaddle);
+        var hit = Physics2D.CircleCast(previousPos, _radius, direction, movement, canHitPaddle ? _paddleLayerMask : _noPaddleLayerMask);
         
         if (hit.collider != null) {
             var paddle = hit.collider.GetComponent<Paddle>();
             if (paddle != null) {
                 RedirectByPaddle(hit.point, paddle);
-                _canHitPaddle = false;
+                canHitPaddle = false;
             }
             else {
                 direction = Vector2.Reflect(direction, hit.normal);
-                _canHitPaddle = true;
+                canHitPaddle = true;
             }
             
             var hittable = hit.collider.GetComponentInParent<IHittable>();
@@ -59,7 +57,7 @@ public class Ball : MonoBehaviour {
                 hittable.OnHit(hit, this);
             }
 
-            if (!gameObject) {
+            if (!this) {
                 return;
             }
 
@@ -80,7 +78,7 @@ public class Ball : MonoBehaviour {
         
         transform.up = direction;
 
-        var elongation = _speed / 5f;
+        var elongation = _speed / _minSpeed;
         transform.localScale = new Vector3(_startScale.x * (1 / elongation), _startScale.y * elongation, _startScale.z);
     }
 

@@ -1,9 +1,14 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace DefaultNamespace {
 	public class DestroyBallZone : MonoBehaviour, IHittable {
+		public event Action destroyedBall;
+		
 		public void OnHit(RaycastHit2D hit, Ball ball) {
-			Destroy(ball.gameObject);
+			DestroyImmediate(ball.gameObject);
+			
+			destroyedBall?.Invoke();
 		}
 	}
 }

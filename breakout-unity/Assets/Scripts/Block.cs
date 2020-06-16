@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
 using UnityEngine;
@@ -20,6 +21,8 @@ public class Block : MonoBehaviour, IHittable {
 	
 	private int _hits = 1;
 	private bool _hasPowerup = false;
+
+	public event Action destroyed;
 	
 	private void Awake() {
 		_lifePrefab.SetActive(false);
@@ -77,14 +80,16 @@ public class Block : MonoBehaviour, IHittable {
 			targetColor.a = 0;
 			sequence.Append(_boxRenderer.DOColor(targetColor, 0.3f).SetEase(Ease.OutSine));
 			
-			var offset = hit.point.x - transform.position.x;
-			var targetAngle = 300 * offset;
-			//_graphicsParent.DOLocalRotate(new Vector3(0, 0, targetAngle), 0.8f, RotateMode.LocalAxisAdd).SetEase(Ease.OutSine);
+			sequence.Insert(0, _graphicsParent.DOScale(_graphicsParent.localScale * 1.4f, 0.3f).SetEase(Ease.OutSine));
 
-			_graphicsParent.DOScale(_graphicsParent.localScale * 1.4f, 0.3f).SetEase(Ease.OutSine);
-			//_graphicsParent.DOMove(transform.position - (Vector3) hit.normal, 0.8f).SetEase(Ease.OutSine);
-			
 			GetComponent<BoxCollider2D>().enabled = false;
+
+			sequence.AppendCallback(() => {
+				Destroy(gameObject);
+
+				destroyed?.Invoke();
+			});
+			
 		}
 		else {
 			var sequence = DOTween.Sequence();
@@ -163,6 +168,8 @@ public class Block : MonoBehaviour, IHittable {
 		}
 		
 		var randomPowerUp = _powerups[Random.Range(0, _powerups.Length - 1)];
-		Instantiate(randomPowerUp, transform.position, Quaternion.identity);
+		var powerup = Instantiate(randomPowerUp, transform.position, Quaternion.identity);
+		
+		powerup.transform.SetParent(transform.parent);
 	}
 }

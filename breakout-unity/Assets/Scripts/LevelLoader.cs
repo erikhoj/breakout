@@ -40,8 +40,6 @@ public class LevelLoader {
 			for (var x = 0; x < blocks.Length; x++) {
 				var blockChar = blocks[x];
 				
-				Debug.Log(blockChar);
-
 				if (blockChar == "") {
 					continue;
 				}

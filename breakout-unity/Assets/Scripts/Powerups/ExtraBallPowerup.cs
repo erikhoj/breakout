@@ -7,7 +7,10 @@ namespace Powerups {
 		protected override void Trigger() {
 			var position = transform.position+ Vector3.up * 0.3f;
 
-			Instantiate(_ballPrefab, position, Quaternion.identity);
+			var ball = Instantiate(_ballPrefab, position, Quaternion.identity);
+			ball.transform.SetParent(transform.parent);
+
+			ball.canHitPaddle = false;
 		}
 	}
 }

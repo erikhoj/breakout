@@ -4,22 +4,30 @@ using UnityEngine;
 public class BlockSpawner : MonoBehaviour {
 	[SerializeField] private Block _blockPrefab;
 
-	private LevelLoader _loader;
+	private LevelLoader _loader = new LevelLoader();
 
-	private void Awake() {
-		_loader = new LevelLoader();
-
-		SpawnLevel(1);
-	}
-
-	private void SpawnLevel(int index) {
+	private int blocksLeft = 0;
+	public event Action allDestroyed;
+	
+	public void SpawnLevel(int index) {
 		var levelInfo = _loader.LoadLevel(index);
 
 		if (levelInfo == null) {
 			Debug.LogError($"Unable to load level {index}");
+			return;
 		}
 
+		ClearBlocks();
 		SpawnBlocks(levelInfo.blocks);
+	}
+
+	private void ClearBlocks() {
+		foreach (var block in GetComponentsInChildren<Block>()) {
+			block.destroyed -= OnBlockDestroyed;
+			Destroy(block.gameObject);
+		}
+
+		blocksLeft = 0;
 	}
 
 	private void SpawnBlocks(BlockInfo[,] blocks) {
@@ -58,7 +66,18 @@ public class BlockSpawner : MonoBehaviour {
 
 				instance.transform.localPosition = pos;
 				instance.SetInfo(blockInfo);
+
+				blocksLeft++;
+				instance.destroyed += OnBlockDestroyed;
 			}
+		}
+	}
+
+	private void OnBlockDestroyed() {
+		blocksLeft--;
+
+		if (blocksLeft == 0) {
+			allDestroyed?.Invoke();
 		}
 	}
 }
